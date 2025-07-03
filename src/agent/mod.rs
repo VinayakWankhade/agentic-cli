@@ -9,10 +9,17 @@ use crate::config::Config;
 pub mod planner;
 
 #[derive(Debug, Clone)]
+pub enum AIProvider {
+    OpenAI,
+    Ollama,
+}
+
+#[derive(Debug, Clone)]
 pub struct Agent {
     client: Client,
     config: crate::config::AgentConfig,
     api_key: Option<String>,
+    provider: AIProvider,
 }
 
 #[derive(Debug, Serialize)]
@@ -39,22 +46,57 @@ struct ChatChoice {
     message: ChatMessage,
 }
 
+// Ollama API structures
+#[derive(Debug, Serialize)]
+struct OllamaRequest {
+    model: String,
+    prompt: String,
+    stream: bool,
+}
+
+#[derive(Debug, Deserialize)]
+struct OllamaResponse {
+    response: String,
+}
+
 impl Agent {
     pub fn new(config: &Config) -> Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(config.agent.timeout_seconds))
             .build()?;
         
+        // Determine provider based on config preference and API key availability
+        let provider = match config.agent.preferred_provider.as_str() {
+            "openai" if config.get_openai_api_key().is_some() => AIProvider::OpenAI,
+            "ollama" => AIProvider::Ollama,
+            _ => {
+                // Fallback logic: if OpenAI is preferred but no key, use Ollama
+                if config.get_openai_api_key().is_some() {
+                    AIProvider::OpenAI
+                } else {
+                    AIProvider::Ollama
+                }
+            }
+        };
+        
         Ok(Self {
             client,
             config: config.agent.clone(),
             api_key: config.get_openai_api_key(),
+            provider,
         })
     }
     
     pub async fn process_query(&self, query: &str) -> Result<String> {
         info!("Processing agent query: {}", query);
         
+        match self.provider {
+            AIProvider::OpenAI => self.process_openai_query(query).await,
+            AIProvider::Ollama => self.process_ollama_query(query).await,
+        }
+    }
+    
+    async fn process_openai_query(&self, query: &str) -> Result<String> {
         // Check if we have an API key
         if self.api_key.is_none() {
             return Ok(self.generate_fallback_response(query));
@@ -101,6 +143,47 @@ impl Agent {
             Ok(choice.message.content.clone())
         } else {
             Err(anyhow!("No response from OpenAI API"))
+        }
+    }
+    
+    async fn process_ollama_query(&self, query: &str) -> Result<String> {
+        debug!("Sending request to Ollama API");
+        
+        // Create system prompt for command interpretation
+        let system_prompt = self.create_system_prompt();
+        
+        let ollama_request = OllamaRequest {
+            model: "gemma3".to_string(), // Use Google's Gemma 3 - powerful and free
+            prompt: format!("{}
+
+User: {}
+Assistant:", system_prompt, query),
+            stream: false,
+        };
+        
+        // Try to connect to local Ollama instance
+        let response = self.client
+            .post("http://localhost:11434/api/generate")
+            .header("Content-Type", "application/json")
+            .json(&ollama_request)
+            .send()
+            .await;
+        
+        match response {
+            Ok(resp) => {
+                if !resp.status().is_success() {
+                    let error_text = resp.text().await.unwrap_or_default();
+                    warn!("Ollama API error: {}", error_text);
+                    return Ok(self.generate_ollama_fallback_response(query));
+                }
+                
+                let ollama_response: OllamaResponse = resp.json().await?;
+                Ok(ollama_response.response)
+            }
+            Err(_) => {
+                info!("Ollama not available, using enhanced fallback");
+                Ok(self.generate_ollama_fallback_response(query))
+            }
         }
     }
     
@@ -165,6 +248,81 @@ Response: "agentic task list --recent"
                 Your query: {}", query
             )
         }
+    }
+    
+    fn generate_ollama_fallback_response(&self, query: &str) -> String {
+        // Enhanced keyword-based fallback for Ollama
+        let query_lower = query.to_lowercase();
+        
+        // Study plan keywords
+        if query_lower.contains("study") && query_lower.contains("plan") {
+            return format!(
+                "📚 **Study Plan Suggestion**\n\n\
+                Based on your request for a study plan, here's a structured approach:\n\n\
+                **This Week's Schedule:**\n\
+                • Monday: Review fundamentals and create task list\n\
+                • Tuesday-Thursday: Focus on core topics (2-3 hours daily)\n\
+                • Friday: Practice problems and assessments\n\
+                • Weekend: Review, summarize, and prepare for next week\n\n\
+                **Suggested Commands:**\n\
+                • Create tasks: `agentic task add --title 'Study Topic X' --priority high`\n\
+                • Start prep session: `agentic prep start --exam [YOUR_EXAM] --duration 120`\n\
+                • Track progress: `agentic prep stats --period week`\n\n\
+                **💡 Tip:** Install Ollama (https://ollama.ai) for unlimited AI assistance!\n\
+                Run: `ollama pull gemma3` to get started with free AI support."
+            );
+        }
+        
+        // Task management keywords
+        if query_lower.contains("task") {
+            if query_lower.contains("add") || query_lower.contains("create") {
+                return "📝 To add a task: `agentic task add --title 'Your task' --priority [low|medium|high] --description 'Optional description'`".to_string();
+            } else if query_lower.contains("list") || query_lower.contains("show") {
+                return "📋 To list tasks: `agentic task list` (add --status todo/in-progress/done for filtering)".to_string();
+            }
+        }
+        
+        // Preparation keywords
+        if query_lower.contains("prep") || query_lower.contains("exam") {
+            return "🎯 For exam preparation: `agentic prep start --exam [EXAM_NAME] --schedule daily`\nThen add topics: `agentic prep add --topic 'Your Topic' --priority 5`".to_string();
+        }
+        
+        // Blog keywords
+        if query_lower.contains("blog") || query_lower.contains("write") {
+            return "✍️ For blogging: `agentic blog new --title 'Your Title' --tags topic1,topic2`\nEdit: `agentic blog edit --post-id [ID]`".to_string();
+        }
+        
+        // General productivity
+        if query_lower.contains("productivity") || query_lower.contains("organize") {
+            return format!(
+                "🚀 **Productivity Boost**\n\n\
+                Here's your productivity toolkit:\n\
+                • `agentic task add --title 'Daily Goals' --priority high`\n\
+                • `agentic prep start --exam 'Personal Development'`\n\
+                • `agentic blog new --title 'Progress Journal'`\n\n\
+                **🔥 Pro Tip:** For unlimited AI assistance, install Ollama!\n\
+                Visit: https://ollama.ai and run `ollama pull gemma3`"
+            );
+        }
+        
+        // Default enhanced response
+        format!(
+            "🤖 **AI Assistant (Free Mode)**\n\n\
+            I'm running in free mode with enhanced pattern matching. For unlimited AI responses:\n\n\
+            **Option 1: Install Ollama (Recommended - Free & Unlimited)**\n\
+            1. Visit https://ollama.ai and download Ollama\n\
+            2. Run: `ollama pull gemma3`\n\
+            3. Restart agentic CLI for automatic AI support\n\n\
+            **Option 2: Use OpenAI**\n\
+            Add your API key to the config file\n\n\
+            **Your Query:** {}\n\n\
+            **Quick Commands:**\n\
+            • Tasks: `agentic task add --title 'Your task'`\n\
+            • Study: `agentic prep start --exam CET`\n\
+            • Blog: `agentic blog new --title 'Post title'`\n\
+            • Run: `agentic run 'any command'`", 
+            query
+        )
     }
     
     #[allow(dead_code)]

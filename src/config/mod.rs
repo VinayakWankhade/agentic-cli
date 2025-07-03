@@ -29,6 +29,7 @@ pub struct AgentConfig {
     pub temperature: f32,
     pub max_tokens: u32,
     pub timeout_seconds: u64,
+    pub preferred_provider: String, // "openai" or "ollama"
 }
 
 impl Default for Config {
@@ -66,6 +67,7 @@ impl Default for AgentConfig {
             temperature: 0.7,
             max_tokens: 1000,
             timeout_seconds: 30,
+            preferred_provider: "ollama".to_string(), // Default to free Ollama
         }
     }
 }
