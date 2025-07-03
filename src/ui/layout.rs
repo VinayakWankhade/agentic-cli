@@ -3,10 +3,15 @@ use ratatui::{
 };
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AppLayout {
+    #[allow(dead_code)]
     pub main_horizontal_split: f32,
+    #[allow(dead_code)]
     pub sidebar_width: u16,
+    #[allow(dead_code)]
     pub input_height: u16,
+    #[allow(dead_code)]
     pub status_height: u16,
 }
 

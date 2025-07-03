@@ -4,6 +4,7 @@ use ratatui::widgets::ListState;
 // In a full implementation, these would contain more sophisticated state and rendering logic
 
 #[derive(Debug)]
+#[allow(dead_code)]
 pub struct CommandBlock {
     pub id: String,
     pub command: String,
@@ -24,7 +25,9 @@ impl CommandBlock {
 
 #[derive(Debug)]
 pub struct InputBar {
+    #[allow(dead_code)]
     pub content: String,
+    #[allow(dead_code)]
     pub cursor_position: usize,
 }
 
@@ -43,7 +46,9 @@ impl InputBar {
 
 #[derive(Debug)]
 pub struct StatusBar {
+    #[allow(dead_code)]
     pub message: String,
+    #[allow(dead_code)]
     pub mode: String,
 }
 
@@ -63,6 +68,7 @@ impl StatusBar {
 #[derive(Debug)]
 pub struct Sidebar {
     pub list_state: ListState,
+    #[allow(dead_code)]
     pub suggestions: Vec<String>,
 }
 

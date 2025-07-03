@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::Subcommand;
 use colored::*;
 use serde::{Deserialize, Serialize};
-use tracing::info;
 
 use crate::db::Database;
 
@@ -14,7 +13,7 @@ pub enum BlogCommand {
         #[arg(long, short)]
         title: String,
         /// Tags for the blog post
-        #[arg(long, short)]
+        #[arg(long, short = 'g')]
         tags: Vec<String>,
     },
     /// Edit an existing blog post

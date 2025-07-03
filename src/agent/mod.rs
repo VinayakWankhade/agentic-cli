@@ -167,6 +167,7 @@ Response: "agentic task list --recent"
         }
     }
     
+    #[allow(dead_code)]
     pub async fn interpret_command(&self, query: &str) -> Result<String> {
         // This method specifically focuses on converting natural language to CLI commands
         let enhanced_query = format!(

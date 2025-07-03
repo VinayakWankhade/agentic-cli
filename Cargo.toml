@@ -47,3 +47,6 @@ colored = "2.0"
 
 # Configuration
 dirs = "5.0"
+
+# Unicode handling
+unicode-width = "0.1"

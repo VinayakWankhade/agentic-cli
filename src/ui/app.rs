@@ -50,11 +50,14 @@ pub struct App {
     pub input_mode: InputMode,
     pub input: String,
     pub command_history: Vec<CommandExecution>,
+    #[allow(dead_code)]
     pub selected_block: usize,
     pub should_quit: bool,
     
     // Theme and Layout
+    #[allow(dead_code)]
     pub theme: AppTheme,
+    #[allow(dead_code)]
     pub layout: AppLayout,
     
     // Components
@@ -63,7 +66,9 @@ pub struct App {
     pub sidebar: Sidebar,
     
     // Event handling
+    #[allow(dead_code)]
     pub event_handler: EventHandler,
+    #[allow(dead_code)]
     pub last_render: Instant,
 }
 
@@ -218,7 +223,7 @@ impl App {
         // Create command execution blocks
         let mut items = Vec::new();
         
-        for (index, execution) in self.command_history.iter().enumerate() {
+        for (_index, execution) in self.command_history.iter().enumerate() {
             let status_icon = match execution.status {
                 ExecutionStatus::Running => "⏳",
                 ExecutionStatus::Success => "✅",

@@ -16,6 +16,8 @@ pub mod layout;
 pub mod components;
 pub mod events;
 pub mod styles;
+pub mod blocks;
+pub mod performance;
 
 pub use app::App;
 

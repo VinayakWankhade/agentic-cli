@@ -23,15 +23,18 @@ pub struct ExecutionStep {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Planner {
     agent: Agent,
 }
 
 impl Planner {
+    #[allow(dead_code)]
     pub fn new(agent: Agent) -> Self {
         Self { agent }
     }
     
+    #[allow(dead_code)]
     pub async fn create_execution_plan(&self, goal: &str) -> Result<ExecutionPlan> {
         info!("Creating execution plan for goal: {}", goal);
         
@@ -47,6 +50,7 @@ impl Planner {
         Ok(plan)
     }
     
+    #[allow(dead_code)]
     fn create_planning_prompt(&self, goal: &str) -> String {
         format!(
             r#"Create a detailed execution plan for the following goal: {}
@@ -76,6 +80,7 @@ Focus on using the agentic CLI tool and standard terminal commands where appropr
         )
     }
     
+    #[allow(dead_code)]
     fn parse_plan_response(&self, response: &str, goal: &str) -> Result<ExecutionPlan> {
         let mut steps = Vec::new();
         let mut step_counter = 1;
@@ -158,6 +163,7 @@ Focus on using the agentic CLI tool and standard terminal commands where appropr
         })
     }
     
+    #[allow(dead_code)]
     pub async fn optimize_plan(&self, plan: &ExecutionPlan) -> Result<ExecutionPlan> {
         info!("Optimizing execution plan with {} steps", plan.steps.len());
         

@@ -2,15 +2,25 @@ use ratatui::style::{Color, Style};
 use crate::config::Config;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct AppTheme {
+    #[allow(dead_code)]
     pub primary_color: Color,
+    #[allow(dead_code)]
     pub secondary_color: Color,
+    #[allow(dead_code)]
     pub accent_color: Color,
+    #[allow(dead_code)]
     pub background_color: Color,
+    #[allow(dead_code)]
     pub text_color: Color,
+    #[allow(dead_code)]
     pub success_color: Color,
+    #[allow(dead_code)]
     pub error_color: Color,
+    #[allow(dead_code)]
     pub warning_color: Color,
+    #[allow(dead_code)]
     pub info_color: Color,
 }
 

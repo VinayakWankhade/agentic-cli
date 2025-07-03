@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::Subcommand;
 use colored::*;
 use serde::{Deserialize, Serialize};
-use tracing::info;
 
 use crate::db::Database;
 
@@ -143,7 +142,7 @@ pub async fn execute(command: PrepCommand, _db: &Database) -> Result<()> {
                 ("JEE-2024-01", "JEE Chemistry", "Completed", "1h 30m", "Yesterday"),
             ];
             
-            for (id, name, status, duration, time) in sessions {
+            for (_id, name, status, duration, time) in sessions {
                 if let Some(ref exam_filter) = exam {
                     if !name.to_lowercase().contains(&exam_filter.to_lowercase()) {
                         continue;

@@ -2,6 +2,7 @@ use std::time::Duration;
 
 #[derive(Debug)]
 pub struct EventHandler {
+    #[allow(dead_code)]
     pub tick_rate: Duration,
 }
 

@@ -3,7 +3,6 @@ use chrono::Utc;
 use clap::Subcommand;
 use colored::*;
 use serde::{Deserialize, Serialize};
-use tracing::info;
 use uuid::Uuid;
 
 use crate::db::Database;
