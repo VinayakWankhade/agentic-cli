@@ -53,8 +53,6 @@ pub fn restore_terminal(terminal: &mut AppTerminal) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    
     #[test]
     fn test_terminal_setup_and_restore() {
         // This test is commented out because it would interfere with the terminal
