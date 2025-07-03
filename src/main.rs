@@ -8,6 +8,7 @@ mod commands;
 mod config;
 mod db;
 mod ui;
+mod warp;
 
 use agent::Agent;
 use commands::CommandRegistry;
@@ -53,6 +54,14 @@ enum Commands {
     Agent {
         /// Natural language query for the agent
         query: String,
+    },
+    /// Warp-mode pipeline: natural language to shell commands
+    Warp {
+        /// Natural language description of what you want to do
+        request: String,
+        /// Execute in dry-run mode (no actual execution)
+        #[arg(long)]
+        dry_run: bool,
     },
     /// Run arbitrary commands
     Run {
@@ -105,6 +114,18 @@ async fn main() -> Result<()> {
         Some(Commands::Agent { query }) => {
             let response = agent.process_query(&query).await?;
             println!("{}", response);
+        }
+        Some(Commands::Warp { request, dry_run }) => {
+            let pipeline = warp::WarpPipeline::new(&config)?;
+            if dry_run {
+                let (plan, command) = pipeline.dry_run(&request).await?;
+                println!("\n{} Would execute: {}", "📋", command);
+            } else {
+                let result = pipeline.execute(&request).await?;
+                if !result.is_success() && !result.cancelled {
+                    std::process::exit(1);
+                }
+            }
         }
         Some(Commands::Run { command }) => {
             command_registry.execute_raw_command(&command).await?;

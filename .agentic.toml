@@ -1,0 +1,53 @@
+# Agentic CLI Configuration
+# This file configures the Warp-mode pipeline for natural language to shell commands
+
+[warp.models]
+# Primary planning model (converts natural language to structured plans)
+planner = "phi4"
+
+# Primary coding model (converts plans to shell commands)  
+coder = "codellama"
+
+# Fallback model (used when primary models fail)
+fallback = "gemma3"
+
+# Ollama host configuration
+ollama_host = "http://localhost:11434"
+timeout_seconds = 30
+
+[warp.execution]
+# Enable streaming output (shows command output in real-time)
+streaming = true
+
+# Auto-confirm command execution (dangerous! only for trusted environments)
+auto_confirm = false
+
+# Maximum execution time in seconds
+max_execution_time = 300
+
+# Working directory for command execution (optional)
+# working_directory = "/path/to/project"
+
+[warp.safety]
+# Enable safety checks for dangerous commands
+enable_safety_checks = true
+
+# Require confirmation before executing commands
+require_confirmation = true
+
+# Additional dangerous command patterns to block
+dangerous_commands = [
+    "rm -rf /",
+    "del /s /q c:",
+    "format c:",
+    "shutdown",
+    "reboot"
+]
+
+# Allowed directories for command execution (empty = no restrictions)
+allowed_directories = [
+    "~/",
+    "./",
+    "/tmp/",
+    "C:\\temp\\"
+]

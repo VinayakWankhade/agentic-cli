@@ -50,3 +50,6 @@ dirs = "5.0"
 
 # Unicode handling
 unicode-width = "0.1"
+
+# Process execution (using tokio built-in process support)
+futures = "0.3"
