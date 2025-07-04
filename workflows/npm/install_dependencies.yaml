@@ -1,0 +1,14 @@
+---
+name: Install NPM dependencies for a project
+command: |-
+  npm install
+  echo "Node modules installed successfully."
+tags:
+  - npm
+  - install
+  - dependencies
+description: Installs all dependencies listed in package.json
+source_url: "https://github.com/agentic-cli/workflows"
+author: Agentic CLI Team
+author_url: "https://github.com/agentic-cli"
+shells: [bash, zsh, fish, pwsh]

@@ -1,0 +1,36 @@
+---
+name: Build and run Docker application
+command: |-
+  docker build -t {{imageName}}:{{tag}} {{buildContext}}
+  docker run -d --name {{containerName}} -p {{hostPort}}:{{containerPort}} {{imageName}}:{{tag}}
+  echo "Container {{containerName}} is running on port {{hostPort}}"
+  docker ps | grep {{containerName}}
+tags:
+  - docker
+  - build
+  - run
+  - container
+description: Builds a Docker image and runs it as a container with port mapping
+arguments:
+  - name: imageName
+    description: Name of the Docker image
+    default_value: my-app
+  - name: tag
+    description: Tag for the Docker image
+    default_value: latest
+  - name: buildContext
+    description: Path to the build context (usually current directory)
+    default_value: .
+  - name: containerName
+    description: Name for the running container
+    default_value: my-app-container
+  - name: hostPort
+    description: Port on the host machine
+    default_value: 8080
+  - name: containerPort
+    description: Port inside the container
+    default_value: 8080
+source_url: "https://github.com/agentic-cli/workflows"
+author: Agentic CLI Team
+author_url: "https://github.com/agentic-cli"
+shells: [bash, zsh, fish, pwsh]

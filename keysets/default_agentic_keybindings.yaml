@@ -1,0 +1,117 @@
+---
+# Agentic CLI Default Keybindings
+# Based on Warp's keybinding system with AI-specific enhancements
+
+# Editor Commands
+"editor:delete_word_left": alt-backspace
+"editor:delete_word_right": alt-delete
+"editor:insert_last_word_previous_command": meta-.
+"editor:select_to_line_end": ctrl-shift-e
+"editor:select_to_line_start": ctrl-shift-a
+
+# Editor View Commands
+"editor_view:add_cursor_above": ctrl-shift-up
+"editor_view:add_cursor_below": ctrl-shift-down
+"editor_view:add_next_occurrence": ctrl-g
+"editor_view:backspace": ctrl-h
+"editor_view:clear_and_copy_lines": ctrl-u
+"editor_view:clear_buffer": ctrl-c
+"editor_view:clear_lines": shift-cmd-k
+"editor_view:cut_all_right": ctrl-k
+"editor_view:cut_word_left": ctrl-w
+"editor_view:cut_word_right": meta-d
+"editor_view:delete": ctrl-d
+"editor_view:delete_all_left": cmd-backspace
+"editor_view:delete_all_right": cmd-delete
+"editor_view:down": ctrl-n
+"editor_view:end": cmd-right
+"editor_view:home": cmd-left
+"editor_view:insert_newline": ctrl-j
+"editor_view:left": ctrl-b
+"editor_view:move_backward_one_word": meta-b
+"editor_view:move_forward_one_word": meta-f
+"editor_view:move_to_line_end": ctrl-e
+"editor_view:move_to_line_start": ctrl-a
+"editor_view:right": ctrl-f
+"editor_view:select_all": cmd-a
+"editor_view:up": ctrl-p
+
+# Input Commands
+"input:clear_screen": ctrl-l
+"input:toggle_ai_mode": ctrl-grave  # Ctrl+`
+"input:toggle_workflows": ctrl-shift-r
+"input:submit_command": enter
+"input:cancel_input": escape
+
+# AI Agent Commands
+"agent:toggle_mode": ctrl-shift-a
+"agent:explain_command": ctrl-shift-e
+"agent:suggest_command": ctrl-space
+"agent:translate_natural_language": ctrl-shift-t
+"agent:show_context": ctrl-shift-c
+
+# Terminal Commands
+"terminal:copy": cmd-c
+"terminal:copy_commands": shift-cmd-c
+"terminal:copy_outputs": alt-shift-cmd-c
+"terminal:paste": cmd-v
+"terminal:find": cmd-f
+"terminal:focus_input": cmd-l
+"terminal:select_all_blocks": cmd-a
+"terminal:select_next_block": cmd-down
+"terminal:select_previous_block": cmd-up
+"terminal:bookmark_block": cmd-b
+"terminal:share_block": shift-cmd-s
+
+# Pane Management
+"pane:split_horizontal": cmd-d
+"pane:split_vertical": shift-cmd-d
+"pane:navigate_next": cmd-]
+"pane:navigate_prev": cmd-[
+"pane:navigate_up": alt-cmd-up
+"pane:navigate_down": alt-cmd-down
+"pane:navigate_left": alt-cmd-left
+"pane:navigate_right": alt-cmd-right
+"pane:resize_up": ctrl-cmd-up
+"pane:resize_down": ctrl-cmd-down
+"pane:resize_left": ctrl-cmd-left
+"pane:resize_right": ctrl-cmd-right
+"pane:close": cmd-w
+"pane:maximize_toggle": shift-cmd-enter
+
+# Workspace Commands
+"workspace:new_tab": cmd-t
+"workspace:close_tab": cmd-w
+"workspace:activate_tab_1": cmd-1
+"workspace:activate_tab_2": cmd-2
+"workspace:activate_tab_3": cmd-3
+"workspace:activate_tab_4": cmd-4
+"workspace:activate_tab_5": cmd-5
+"workspace:activate_tab_6": cmd-6
+"workspace:activate_tab_7": cmd-7
+"workspace:activate_tab_8": cmd-8
+"workspace:activate_tab_9": cmd-9
+"workspace:activate_next_tab": shift-cmd-}
+"workspace:activate_prev_tab": shift-cmd-{
+"workspace:move_tab_left": ctrl-shift-left
+"workspace:move_tab_right": ctrl-shift-right
+
+# UI Commands
+"ui:increase_font_size": cmd-=
+"ui:decrease_font_size": cmd--
+"ui:reset_font_size": cmd-0
+"ui:toggle_theme": ctrl-cmd-t
+"ui:show_settings": cmd-,
+"ui:show_command_palette": cmd-p
+"ui:show_workflow_palette": ctrl-shift-p
+"ui:show_keybinding_settings": ctrl-cmd-k
+"ui:toggle_sidebar": cmd-slash
+"ui:toggle_fullscreen": f11
+
+# Application Commands
+"app:quit": ctrl-q
+"app:force_quit": cmd-alt-esc
+"app:show_help": f1
+"app:show_about": shift-f1
+"app:reload_config": ctrl-shift-r
+"app:toggle_debug_mode": ctrl-shift-d

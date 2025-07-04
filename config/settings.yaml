@@ -1,0 +1,165 @@
+---
+# Agentic CLI Configuration
+# This file contains the main settings for the terminal
+
+# Application Settings
+app:
+  name: "Agentic CLI"
+  version: "1.0.0"
+  debug_mode: false
+  log_level: "info"
+  config_dir: "~/.agentic"
+  data_dir: "~/.agentic/data"
+
+# Theme Configuration
+theme:
+  current: "agentic_dark"
+  dark_mode: true
+  auto_switch: false
+  font:
+    family: "JetBrains Mono"
+    size: 14
+    weight: "normal"
+  colors:
+    primary: "#00c2ff"
+    secondary: "#282a36"
+    accent: "#bd93f9"
+    success: "#50fa7b"
+    warning: "#f1fa8c"
+    error: "#ff5555"
+    info: "#8be9fd"
+
+# Terminal Settings
+terminal:
+  shell: "auto"  # auto, bash, zsh, fish, pwsh, cmd
+  scrollback_lines: 10000
+  word_separators: " \t\n\"'`()[]{}|&;:"
+  copy_on_select: false
+  paste_on_right_click: true
+  cursor:
+    style: "block"  # block, underline, beam
+    blink: true
+  bell:
+    enabled: false
+    sound: "default"
+
+# AI Agent Configuration
+agent:
+  enabled: true
+  model: "phi4:latest"  # Microsoft phi4 model via Ollama - powerful and local
+  provider: "ollama"  # Use Ollama for local AI inference
+  api_key: null  # Not needed for Ollama
+  base_url: "http://localhost:11434"  # Ollama default endpoint
+  temperature: 0.7
+  max_tokens: 2048
+  timeout_seconds: 60
+  context_window: 8192
+  system_prompt: |
+    You are an AI assistant integrated into Agentic CLI, a modern terminal interface powered by Microsoft's phi4 model.
+    Help users with command line tasks, explain commands, suggest workflows, and provide
+    intelligent assistance for development and system administration tasks.
+    You have access to themes, workflows, and keybindings systems inspired by Warp terminal.
+    Always be concise, practical, and helpful in your responses.
+
+# Workflow Settings
+workflows:
+  enabled: true
+  auto_suggest: true
+  search_paths:
+    - "./workflows"
+    - "~/.agentic/workflows"
+  favorites:
+    - "git/clone_with_ssh"
+    - "rust/create_new_project"
+    - "docker/build_and_run_app"
+
+# Keybindings
+keybindings:
+  preset: "default_agentic"  # default_agentic, emacs, vim
+  custom_bindings: {}
+
+# UI Settings
+ui:
+  layout: "default"  # default, compact, minimal
+  show_tabs: true
+  show_status_bar: true
+  show_line_numbers: false
+  animations: true
+  smooth_scrolling: true
+  transparency: 0.95
+  blur_background: true
+  panes:
+    max_panes: 10
+    default_split: "horizontal"
+  blocks:
+    show_timestamps: true
+    show_duration: true
+    auto_collapse: false
+    max_output_lines: 1000
+
+# History Settings
+history:
+  enabled: true
+  max_entries: 10000
+  deduplicate: true
+  ignore_patterns:
+    - "ls"
+    - "clear"
+    - "pwd"
+    - "exit"
+  search:
+    fuzzy: true
+    case_sensitive: false
+
+# Performance Settings
+performance:
+  gpu_acceleration: true
+  vsync: true
+  frame_rate: 60
+  memory_limit_mb: 512
+  cache_size_mb: 100
+
+# Security Settings
+security:
+  store_sensitive_data: false
+  encrypt_history: false
+  sandbox_commands: false
+  allowed_hosts: []
+  blocked_commands: []
+
+# Plugin Settings
+plugins:
+  enabled: true
+  auto_update: false
+  search_paths:
+    - "~/.agentic/plugins"
+  loaded_plugins: []
+
+# Network Settings
+network:
+  proxy:
+    enabled: false
+    host: null
+    port: null
+    username: null
+    password: null
+  timeout_seconds: 30
+  user_agent: "Agentic-CLI/1.0.0"
+
+# Backup Settings
+backup:
+  enabled: true
+  auto_backup: true
+  backup_interval: "daily"  # hourly, daily, weekly
+  max_backups: 30
+  backup_location: "~/.agentic/backups"
+
+# Advanced Settings
+advanced:
+  experimental_features: false
+  telemetry: false
+  crash_reporting: false
+  feature_flags: {}
+  env_vars:
+    AGENTIC_CONFIG_PATH: "~/.agentic/config.yaml"
+    AGENTIC_LOG_LEVEL: "info"

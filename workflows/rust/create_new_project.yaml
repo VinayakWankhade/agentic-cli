@@ -1,0 +1,42 @@
+---
+name: Create new Rust project with best practices
+command: |-
+  cargo new {{projectName}} {{projectType}}
+  cd {{projectName}}
+  echo '[dependencies]' >> Cargo.toml
+  echo 'clap = { version = "4.0", features = ["derive"] }' >> Cargo.toml
+  echo 'tokio = { version = "1.0", features = ["full"] }' >> Cargo.toml
+  echo 'serde = { version = "1.0", features = ["derive"] }' >> Cargo.toml
+  echo 'anyhow = "1.0"' >> Cargo.toml
+  echo '' >> Cargo.toml
+  echo '[dev-dependencies]' >> Cargo.toml
+  echo 'assert_cmd = "2.0"' >> Cargo.toml
+  echo 'predicates = "3.0"' >> Cargo.toml
+  mkdir -p src/bin tests examples
+  echo 'fn main() { println!("Hello, {{projectName}}!"); }' > src/main.rs
+  echo '# {{projectName}}' > README.md
+  echo '' >> README.md
+  echo '## Description' >> README.md
+  echo 'A Rust project created with Agentic CLI' >> README.md
+  git init
+  echo '/target' > .gitignore
+  echo 'Cargo.lock' >> .gitignore
+  git add .
+  git commit -m "Initial commit"
+tags:
+  - rust
+  - cargo
+  - init
+  - project
+description: Creates a new Rust project with common dependencies and best practices setup
+arguments:
+  - name: projectName
+    description: The name of the Rust project
+    default_value: my-rust-project
+  - name: projectType
+    description: Type of project (--bin for binary, --lib for library)
+    default_value: --bin
+source_url: "https://github.com/agentic-cli/workflows"
+author: Agentic CLI Team
+author_url: "https://github.com/agentic-cli"
+shells: [bash, zsh, fish, pwsh]

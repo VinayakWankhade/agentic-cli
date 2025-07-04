@@ -1,0 +1,32 @@
+---
+name: Agentic Dark
+accent: "#00c2ff"
+background: "#0a0a0a"
+details: darker
+foreground: "#ffffff"
+terminal_colors:
+  bright:
+    black: "#8e8e8e"
+    blue: "#a5d5fe"
+    cyan: "#d0d1fe"
+    green: "#b4fa72"
+    magenta: "#ff8ffd"
+    red: "#ffc4bd"
+    white: "#feffff"
+    yellow: "#fefdd5"
+  normal:
+    black: "#616161"
+    blue: "#00c2ff"
+    cyan: "#00d9ff"
+    green: "#00ff7f"
+    magenta: "#ff00ff"
+    red: "#ff4757"
+    white: "#f1f1f1"
+    yellow: "#ffa502"
+author: Agentic CLI Team
+description: Custom dark theme optimized for AI-powered terminal workflows
+tags:
+  - dark
+  - ai
+  - modern
+  - cyan

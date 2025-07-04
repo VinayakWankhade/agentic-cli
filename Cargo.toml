@@ -17,8 +17,9 @@ clap = { version = "4.4", features = ["derive"] }
 # Async runtime
 tokio = { version = "1.35", features = ["full"] }
 
-# HTTP client for OpenAI API
+# HTTP client for OpenAI API and Ollama
 reqwest = { version = "0.11", features = ["json"] }
+url = "2.5"
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -47,6 +48,7 @@ colored = "2.0"
 
 # Configuration
 dirs = "5.0"
+serde_yaml = "0.9"
 
 # Unicode handling
 unicode-width = "0.1"

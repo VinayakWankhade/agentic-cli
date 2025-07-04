@@ -9,6 +9,12 @@ mod config;
 mod db;
 mod ui;
 mod warp;
+mod ollama;
+
+// Warp-inspired modules
+mod themes;
+mod workflows;
+mod keybindings;
 
 use agent::Agent;
 use commands::CommandRegistry;

@@ -5,6 +5,7 @@ use std::time::Duration;
 use tracing::{debug, info, warn};
 
 use crate::config::Config;
+use crate::ollama::{OllamaClient, OllamaConfig, ChatMessage as OllamaChatMessage};
 
 pub mod planner;
 
@@ -14,12 +15,13 @@ pub enum AIProvider {
     Ollama,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Agent {
     client: Client,
     config: crate::config::AgentConfig,
     api_key: Option<String>,
     provider: AIProvider,
+    ollama_client: Option<OllamaClient>,
 }
 
 #[derive(Debug, Serialize)]
@@ -70,13 +72,33 @@ impl Agent {
             "openai" if config.get_openai_api_key().is_some() => AIProvider::OpenAI,
             "ollama" => AIProvider::Ollama,
             _ => {
-                // Fallback logic: if OpenAI is preferred but no key, use Ollama
-                if config.get_openai_api_key().is_some() {
-                    AIProvider::OpenAI
-                } else {
-                    AIProvider::Ollama
+                // Default to Ollama (phi4) as it's more powerful and local
+                AIProvider::Ollama
+            }
+        };
+        
+        // Initialize Ollama client with phi4 model
+        let ollama_client = if matches!(provider, AIProvider::Ollama) {
+            let ollama_config = OllamaConfig {
+                base_url: "http://localhost:11434".to_string(),
+                model: "phi4:latest".to_string(), // Use phi4 model
+                temperature: config.agent.temperature,
+                max_tokens: Some(config.agent.max_tokens),
+                timeout: Duration::from_secs(config.agent.timeout_seconds),
+            };
+            
+            match OllamaClient::new(ollama_config) {
+                Ok(client) => {
+                    info!("✅ Ollama client initialized with phi4 model");
+                    Some(client)
+                }
+                Err(e) => {
+                    warn!("Failed to initialize Ollama client: {}", e);
+                    None
                 }
             }
+        } else {
+            None
         };
         
         Ok(Self {
@@ -84,6 +106,7 @@ impl Agent {
             config: config.agent.clone(),
             api_key: config.get_openai_api_key(),
             provider,
+            ollama_client,
         })
     }
     
@@ -147,43 +170,36 @@ impl Agent {
     }
     
     async fn process_ollama_query(&self, query: &str) -> Result<String> {
-        debug!("Sending request to Ollama API");
+        debug!("🤖 Sending request to Ollama phi4 model");
         
-        // Create system prompt for command interpretation
-        let system_prompt = self.create_system_prompt();
-        
-        let ollama_request = OllamaRequest {
-            model: "gemma3".to_string(), // Use Google's Gemma 3 - powerful and free
-            prompt: format!("{}
-
-User: {}
-Assistant:", system_prompt, query),
-            stream: false,
-        };
-        
-        // Try to connect to local Ollama instance
-        let response = self.client
-            .post("http://localhost:11434/api/generate")
-            .header("Content-Type", "application/json")
-            .json(&ollama_request)
-            .send()
-            .await;
-        
-        match response {
-            Ok(resp) => {
-                if !resp.status().is_success() {
-                    let error_text = resp.text().await.unwrap_or_default();
-                    warn!("Ollama API error: {}", error_text);
-                    return Ok(self.generate_ollama_fallback_response(query));
+        // Check if we have an Ollama client
+        if let Some(ollama_client) = &self.ollama_client {
+            // First check if Ollama is healthy
+            if !ollama_client.health_check().await.unwrap_or(false) {
+                warn!("⚠️  Ollama service not available, using fallback");
+                return Ok(self.generate_ollama_fallback_response(query));
+            }
+            
+            // Create structured chat messages for phi4
+            let system_prompt = self.create_system_prompt();
+            let messages = vec![
+                OllamaChatMessage::system(&system_prompt),
+                OllamaChatMessage::user(query),
+            ];
+            
+            match ollama_client.chat(&messages).await {
+                Ok(response) => {
+                    info!("🎯 phi4 model responded successfully");
+                    Ok(response.trim().to_string())
                 }
-                
-                let ollama_response: OllamaResponse = resp.json().await?;
-                Ok(ollama_response.response)
+                Err(e) => {
+                    warn!("❌ phi4 model error: {}", e);
+                    Ok(self.generate_ollama_fallback_response(query))
+                }
             }
-            Err(_) => {
-                info!("Ollama not available, using enhanced fallback");
-                Ok(self.generate_ollama_fallback_response(query))
-            }
+        } else {
+            info!("🔄 Ollama client not initialized, using enhanced fallback");
+            Ok(self.generate_ollama_fallback_response(query))
         }
     }
     
