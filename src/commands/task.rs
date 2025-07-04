@@ -82,6 +82,18 @@ pub enum TaskStatus {
     Complete,
 }
 
+impl std::str::FromStr for TaskStatus {
+    type Err = anyhow::Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "todo" | "t" => Ok(TaskStatus::Todo),
+            "inprogress" | "in_progress" | "in progress" | "ip" => Ok(TaskStatus::InProgress),
+            "complete" | "c" | "done" => Ok(TaskStatus::Complete),
+            _ => Err(anyhow::anyhow!("Invalid task status: {}", s)),
+        }
+    }
+}
+
 impl std::fmt::Display for Priority {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -146,13 +158,12 @@ impl Task {
     }
 }
 
-pub async fn execute(command: TaskCommand, _db: &Database) -> Result<()> {
+pub async fn execute(command: TaskCommand, db: &Database) -> Result<()> {
     match command {
         TaskCommand::Add { title, description, priority } => {
             let priority = priority.parse::<Priority>()?;
             let task = Task::new(title, description, priority);
-            
-            // In a real implementation, save to database
+            db.add_task(&task).await?;
             println!("{}", "✓ Task created successfully!".green().bold());
             println!("ID: {}", task.id.bright_blue());
             println!("Title: {}", task.title.bold());
@@ -162,43 +173,31 @@ pub async fn execute(command: TaskCommand, _db: &Database) -> Result<()> {
             println!("Priority: {}", format!("{}", task.priority).color(task.priority_color()));
             println!("Status: {}", task.status);
         }
-        
-        TaskCommand::List { recent: _, status: _, priority: _ } => {
-            // In a real implementation, query from database
+        TaskCommand::List { .. } => {
+            let tasks = db.list_tasks().await?;
             println!("{}", "📋 Your Tasks".blue().bold());
-            println!();
-            
-            // Mock data for demonstration
-            let tasks = vec![
-                Task::new("Build dashboard".to_string(), Some("Create React dashboard for CET prep".to_string()), Priority::High),
-                Task::new("Study algorithms".to_string(), None, Priority::Medium),
-                Task::new("Review notes".to_string(), Some("Go through physics notes".to_string()), Priority::Low),
-            ];
-            
             for (index, task) in tasks.iter().enumerate() {
                 println!("{}. {} {} {} [{}]", 
                     (index + 1).to_string().bright_white(),
                     task.status_icon(),
                     task.title.bold(),
                     format!("({})", task.priority).color(task.priority_color()),
-                    task.id[..8].bright_black()
+                    &task.id[..8].bright_black()
                 );
-                
                 if let Some(desc) = &task.description {
                     println!("   {}", desc.italic().bright_black());
                 }
                 println!();
             }
         }
-        
         TaskCommand::Complete { task_id } => {
+            db.complete_task(&task_id).await?;
             println!("{} Task '{}' marked as complete!", "✓".green().bold(), task_id.bold());
         }
-        
         TaskCommand::Delete { task_id } => {
+            db.delete_task(&task_id).await?;
             println!("{} Task '{}' deleted!", "🗑".red(), task_id.bold());
         }
-        
         TaskCommand::Priority { task_id, priority } => {
             let priority = priority.parse::<Priority>()?;
             println!("{} Updated priority for '{}' to {}", 
@@ -211,23 +210,12 @@ pub async fn execute(command: TaskCommand, _db: &Database) -> Result<()> {
                 })
             );
         }
-        
         TaskCommand::Show { task_id } => {
             println!("{} Task Details", "🔍".blue());
             println!("Searching for task: {}", task_id.bold());
-            
-            // Mock task details
-            println!();
-            println!("ID: {}", "abc123def".bright_blue());
-            println!("Title: {}", "Build dashboard".bold());
-            println!("Description: {}", "Create React dashboard for CET prep".italic());
-            println!("Priority: {}", "HIGH".red().bold());
-            println!("Status: {}", "TODO".yellow());
-            println!("Created: {}", "2024-01-15 10:30:00 UTC".bright_black());
-            println!("Updated: {}", "2024-01-15 10:30:00 UTC".bright_black());
+            // You can implement a db.get_task_by_id here for full details
         }
     }
-    
     Ok(())
 }
 

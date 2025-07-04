@@ -97,10 +97,8 @@ async fn main() -> Result<()> {
     
     // Initialize configuration
     let config = Config::load().await?;
-    
     // Initialize database
     let db = Database::new(&config.database_path).await?;
-    
     // Initialize agent
     let agent = Agent::new(&config)?;
     
@@ -124,7 +122,7 @@ async fn main() -> Result<()> {
         Some(Commands::Warp { request, dry_run }) => {
             let pipeline = warp::WarpPipeline::new(&config)?;
             if dry_run {
-                let (plan, command) = pipeline.dry_run(&request).await?;
+                let (_plan, command) = pipeline.dry_run(&request).await?;
                 println!("\n{} Would execute: {}", "📋", command);
             } else {
                 let result = pipeline.execute(&request).await?;

@@ -201,7 +201,7 @@ impl AgenticConfig {
 
 /// Create a sample .agentic.toml configuration file
 pub async fn create_sample_config() -> Result<()> {
-    let config = AgenticConfig::default();
+    let _config = AgenticConfig::default();
     
     let sample_path = PathBuf::from(".agentic.toml.sample");
     let content = format!(

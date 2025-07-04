@@ -7,6 +7,7 @@ description = "A Warp-inspired agentic terminal interface"
 license = "MIT"
 
 [dependencies]
+shell-words = "1.1.0"
 # TUI libraries
 ratatui = "0.26"
 crossterm = "0.28"

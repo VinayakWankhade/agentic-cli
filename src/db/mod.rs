@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::path::Path;
 use tokio::task;
 use uuid::Uuid;
+use crate::commands::task::{Task, Priority, TaskStatus};
 
 #[derive(Debug, Clone)]
 pub struct Database {
@@ -193,6 +194,87 @@ impl Database {
             Ok(())
         }).await??;
         
+        Ok(())
+    }
+
+    pub async fn add_task(&self, task: &Task) -> Result<()> {
+        let db_path = self.db_path.clone();
+        let task = task.clone();
+        task::spawn_blocking(move || -> Result<()> {
+            let conn = Connection::open(&db_path)?;
+            conn.execute(
+                "INSERT INTO tasks (id, title, description, priority, status, created_at, updated_at)
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                params![
+                    task.id,
+                    task.title,
+                    task.description,
+                    task.priority.to_string(),
+                    task.status.to_string(),
+                    task.created_at.to_rfc3339(),
+                    task.updated_at.to_rfc3339(),
+                ],
+            )?;
+            Ok(())
+        }).await??;
+        Ok(())
+    }
+
+    pub async fn list_tasks(&self) -> Result<Vec<Task>> {
+        let db_path = self.db_path.clone();
+        let tasks = task::spawn_blocking(move || -> Result<Vec<Task>> {
+            let conn = Connection::open(&db_path)?;
+            let mut stmt = conn.prepare("SELECT id, title, description, priority, status, created_at, updated_at FROM tasks")?;
+            let rows = stmt.query_map([], |row| {
+                let priority_str: String = row.get(3)?;
+                let status_str: String = row.get(4)?;
+                let created_at_str: String = row.get(5)?;
+                let updated_at_str: String = row.get(6)?;
+                Ok(Task {
+                    id: row.get(0)?,
+                    title: row.get(1)?,
+                    description: row.get(2)?,
+                    priority: priority_str.parse().unwrap_or(Priority::Medium),
+                    status: status_str.parse().unwrap_or(TaskStatus::Todo),
+                    created_at: created_at_str.parse().unwrap_or_else(|_| Utc::now()),
+                    updated_at: updated_at_str.parse().unwrap_or_else(|_| Utc::now()),
+                })
+            })?;
+            let mut tasks = Vec::new();
+            for row in rows {
+                tasks.push(row?);
+            }
+            Ok(tasks)
+        }).await??;
+        Ok(tasks)
+    }
+
+    pub async fn complete_task(&self, task_id: &str) -> Result<()> {
+        let db_path = self.db_path.clone();
+        let task_id = task_id.to_string();
+        let now = Utc::now().to_rfc3339();
+        task::spawn_blocking(move || -> Result<()> {
+            let conn = Connection::open(&db_path)?;
+            conn.execute(
+                "UPDATE tasks SET status = 'Complete', updated_at = ?1 WHERE id = ?2",
+                params![now, task_id],
+            )?;
+            Ok(())
+        }).await??;
+        Ok(())
+    }
+
+    pub async fn delete_task(&self, task_id: &str) -> Result<()> {
+        let db_path = self.db_path.clone();
+        let task_id = task_id.to_string();
+        task::spawn_blocking(move || -> Result<()> {
+            let conn = Connection::open(&db_path)?;
+            conn.execute(
+                "DELETE FROM tasks WHERE id = ?1",
+                params![task_id],
+            )?;
+            Ok(())
+        }).await??;
         Ok(())
     }
 }

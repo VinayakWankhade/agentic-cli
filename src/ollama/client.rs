@@ -68,6 +68,7 @@ pub struct OllamaResponse {
     pub eval_duration: Option<u64>,
 }
 
+#[derive(Debug, Clone)]
 pub struct OllamaClient {
     client: Client,
     config: OllamaConfig,

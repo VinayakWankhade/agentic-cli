@@ -9,7 +9,8 @@ use ratatui::{
     Frame, Terminal,
 };
 use std::time::{Duration, Instant};
-use tracing::{debug, info, warn};
+use tracing::{debug, info};
+use clap::Parser;
 
 use crate::{
     agent::Agent,
@@ -23,6 +24,7 @@ use super::{
     events::EventHandler,
     layout::AppLayout,
     styles::AppTheme,
+    performance::VirtualScroller,
 };
 
 #[derive(Debug, Clone, PartialEq)]
@@ -70,6 +72,9 @@ pub struct App {
     pub event_handler: EventHandler,
     #[allow(dead_code)]
     pub last_render: Instant,
+    
+    // Scrolling
+    pub scroller: VirtualScroller,
 }
 
 impl App {
@@ -104,6 +109,9 @@ impl App {
             
             event_handler: EventHandler::new(Duration::from_millis(16)), // 60 FPS
             last_render: Instant::now(),
+            
+            // Initialize scroller with default values
+            scroller: VirtualScroller::new(10, 4), // 4 lines per command execution
         }
     }
     
@@ -223,7 +231,15 @@ impl App {
         // Create command execution blocks
         let mut items = Vec::new();
         
-        for (_index, execution) in self.command_history.iter().enumerate() {
+        // Update scroller with current viewport height and total items
+        self.scroller.viewport_height = area.height as usize;
+        self.scroller.update_total_items(self.command_history.len());
+        
+        // Get visible range based on scroll position
+        let (start_idx, end_idx) = self.scroller.get_visible_range();
+        
+        // Only render visible items
+        for (_index, execution) in self.command_history.iter().enumerate().skip(start_idx).take(end_idx - start_idx) {
             let status_icon = match execution.status {
                 ExecutionStatus::Running => "⏳",
                 ExecutionStatus::Success => "✅",
@@ -259,7 +275,7 @@ impl App {
                     ),
                     Span::raw(" | "),
                     Span::styled(
-                        format!("{}ms", execution.duration_ms),
+                        format!("{}{}", execution.duration_ms, "ms"),
                         Style::default().fg(Color::Gray),
                     ),
                 ]),
@@ -267,7 +283,7 @@ impl App {
                     Span::raw("  "),
                     Span::styled(
                         if execution.output.len() > 100 {
-                            format!("{}...", &execution.output[..100])
+                            format!("{}{}", &execution.output[..100], "...")
                         } else {
                             execution.output.clone()
                         },
@@ -280,8 +296,15 @@ impl App {
             items.push(item);
         }
         
+        // Add scroll indicator if needed
+        let title = if self.command_history.len() > (end_idx - start_idx) {
+            format!("Command History (Scroll: {}/{})", start_idx + 1, self.command_history.len())
+        } else {
+            "Command History".to_string()
+        };
+        
         let block = Block::default()
-            .title("Command History")
+            .title(title)
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::Blue));
         
@@ -436,6 +459,23 @@ impl App {
                 Span::styled("  ?", Style::default().fg(Color::Green)),
                 Span::raw("       - Toggle this help"),
             ]),
+            // Add scrolling key bindings
+            Line::from(vec![Span::raw("")]),
+            Line::from(vec![
+                Span::styled("Scrolling:", Style::default().add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(vec![
+                Span::styled("  ↑/↓", Style::default().fg(Color::Green)),
+                Span::raw("     - Scroll up/down"),
+            ]),
+            Line::from(vec![
+                Span::styled("  PgUp/PgDn", Style::default().fg(Color::Green)),
+                Span::raw(" - Scroll page up/down"),
+            ]),
+            Line::from(vec![
+                Span::styled("  Home/End", Style::default().fg(Color::Green)),
+                Span::raw("  - Scroll to top/bottom"),
+            ]),
             Line::from(vec![Span::raw("")]),
             Line::from(vec![
                 Span::styled("Commands:", Style::default().add_modifier(Modifier::BOLD)),
@@ -555,6 +595,25 @@ impl App {
                     AppMode::Settings
                 };
             }
+            // Add scrolling with arrow keys
+            KeyCode::Up => {
+                self.scroller.scroll_up(1);
+            }
+            KeyCode::Down => {
+                self.scroller.scroll_down(1);
+            }
+            KeyCode::PageUp => {
+                self.scroller.scroll_up(5);
+            }
+            KeyCode::PageDown => {
+                self.scroller.scroll_down(5);
+            }
+            KeyCode::Home => {
+                self.scroller.scroll_offset = 0;
+            }
+            KeyCode::End => {
+                self.scroller.scroll_offset = self.scroller.max_scroll_offset();
+            }
             KeyCode::Enter => {
                 self.input_mode = InputMode::Editing;
             }
@@ -583,13 +642,13 @@ impl App {
             }
             _ => {}
         }
-        Ok(())
+        return Ok(())
     }
     
     async fn execute_command(&mut self) -> Result<()> {
         let command = self.input.trim().to_string();
         info!("Executing command: {}", command);
-        
+
         let execution = CommandExecution::new(
             command.clone(),
             if self.mode == AppMode::Agent {
@@ -598,112 +657,152 @@ impl App {
                 None
             },
         );
-        
+
         // Add to history immediately
         self.command_history.insert(0, execution.clone());
-        
-        // Save to database
         self.db.save_command_execution(&execution).await?;
-        
-        // Execute command based on mode
-        match self.mode {
-            AppMode::Agent => {
-                // Use agent to process the query
-                match self.agent.process_query(&command).await {
-                    Ok(response) => {
-                        let mut updated_execution = execution;
-                        updated_execution.output = response;
-                        updated_execution.status = ExecutionStatus::Success;
-                        updated_execution.duration_ms = 100; // Mock duration
-                        
-                        // Update in history
-                        if let Some(exec) = self.command_history.get_mut(0) {
-                            *exec = updated_execution.clone();
+
+        // Use shell_words for proper splitting
+        let args = match shell_words::split(&command) {
+            Ok(a) => a,
+            Err(e) => {
+                self.update_execution_output(0, &format!("Error parsing command: {}", e), ExecutionStatus::Error, 0).await?;
+                return Ok(());
+            }
+        };
+        let mut cli_args = vec!["agentic-cli"]; // program name for clap
+        cli_args.extend(args.iter().map(|s| s.as_str()));
+
+        match crate::Cli::try_parse_from(cli_args) {
+            Ok(cli) => {
+                match cli.command {
+                    Some(crate::Commands::Task { task_cmd }) => {
+                        match self.command_registry.execute_task(task_cmd, &self.db).await {
+                            Ok(_) => {
+                                self.update_execution_output(0, "Task command executed successfully", ExecutionStatus::Success, 75).await?;
+                            }
+                            Err(e) => {
+                                self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 25).await?;
+                            }
                         }
-                        
-                        // Update in database
-                        self.db.update_execution_status(
-                            &updated_execution.id,
-                            ExecutionStatus::Success,
-                            &updated_execution.output,
-                            updated_execution.duration_ms,
-                        ).await?;
+                        return Ok(());
                     }
-                    Err(e) => {
-                        warn!("Agent command failed: {}", e);
-                        let mut updated_execution = execution;
-                        updated_execution.output = format!("Error: {}", e);
-                        updated_execution.status = ExecutionStatus::Error;
-                        updated_execution.duration_ms = 50;
-                        
-                        // Update in history
-                        if let Some(exec) = self.command_history.get_mut(0) {
-                            *exec = updated_execution.clone();
+                    Some(crate::Commands::Prep { prep_cmd }) => {
+                        match self.command_registry.execute_prep(prep_cmd, &self.db).await {
+                            Ok(_) => {
+                                self.update_execution_output(0, "Prep command executed successfully", ExecutionStatus::Success, 75).await?;
+                            }
+                            Err(e) => {
+                                self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 25).await?;
+                            }
                         }
-                        
-                        // Update in database
-                        self.db.update_execution_status(
-                            &updated_execution.id,
-                            ExecutionStatus::Error,
-                            &updated_execution.output,
-                            updated_execution.duration_ms,
-                        ).await?;
+                        return Ok(());
+                    }
+                    Some(crate::Commands::Blog { blog_cmd }) => {
+                        match self.command_registry.execute_blog(blog_cmd, &self.db).await {
+                            Ok(_) => {
+                                self.update_execution_output(0, "Blog command executed successfully", ExecutionStatus::Success, 75).await?;
+                            }
+                            Err(e) => {
+                                self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 25).await?;
+                            }
+                        }
+                        return Ok(());
+                    }
+                    Some(crate::Commands::Agent { query }) => {
+                        match self.agent.process_query(&query).await {
+                            Ok(response) => {
+                                self.update_execution_output(0, &response, ExecutionStatus::Success, 100).await?;
+                            }
+                            Err(e) => {
+                                self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 50).await?;
+                            }
+                        }
+                        return Ok(());
+                    }
+                    Some(crate::Commands::Warp { request, dry_run }) => {
+                        let pipeline = crate::warp::WarpPipeline::new(&self.config)?;
+                        if dry_run {
+                            let (_plan, command) = pipeline.dry_run(&request).await?;
+                            let output = format!("\n{} Would execute: {}", "📋", command);
+                            self.update_execution_output(0, &output, ExecutionStatus::Success, 100).await?;
+                        } else {
+                            let result = pipeline.execute(&request).await?;
+                            let output = if !result.is_success() && !result.cancelled {
+                                "Pipeline execution failed".to_string()
+                            } else {
+                                "Pipeline executed successfully".to_string()
+                            };
+                            self.update_execution_output(0, &output, ExecutionStatus::Success, 100).await?;
+                        }
+                        return Ok(());
+                    }
+                    Some(crate::Commands::Run { command }) => {
+                        match self.command_registry.execute_raw_command(&command).await {
+                            Ok(_) => {
+                                self.update_execution_output(0, "Command executed successfully", ExecutionStatus::Success, 75).await?;
+                            }
+                            Err(e) => {
+                                self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 25).await?;
+                            }
+                        }
+                        return Ok(());
+                    }
+                    Some(crate::Commands::Tui) | None => {
+                        // Already in TUI mode, do nothing
+                        return Ok(());
                     }
                 }
+
             }
-            _ => {
-                // Execute as regular command
-                match self.command_registry.execute_raw_command(&command).await {
-                    Ok(_) => {
-                        let mut updated_execution = execution;
-                        updated_execution.output = "Command executed successfully".to_string();
-                        updated_execution.status = ExecutionStatus::Success;
-                        updated_execution.duration_ms = 75;
-                        
-                        // Update in history
-                        if let Some(exec) = self.command_history.get_mut(0) {
-                            *exec = updated_execution.clone();
+            Err(e) => {
+                // If not a recognized CLI command, try agent mode if enabled
+                if self.mode == AppMode::Agent {
+                    match self.agent.process_query(&command).await {
+                        Ok(response) => {
+                            self.update_execution_output(0, &response, ExecutionStatus::Success, 100).await?;
                         }
-                        
-                        // Update in database
-                        self.db.update_execution_status(
-                            &updated_execution.id,
-                            ExecutionStatus::Success,
-                            &updated_execution.output,
-                            updated_execution.duration_ms,
-                        ).await?;
-                    }
-                    Err(e) => {
-                        warn!("Command failed: {}", e);
-                        let mut updated_execution = execution;
-                        updated_execution.output = format!("Error: {}", e);
-                        updated_execution.status = ExecutionStatus::Error;
-                        updated_execution.duration_ms = 25;
-                        
-                        // Update in history
-                        if let Some(exec) = self.command_history.get_mut(0) {
-                            *exec = updated_execution.clone();
+                        Err(e) => {
+                            self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 50).await?;
                         }
-                        
-                        // Update in database
-                        self.db.update_execution_status(
-                            &updated_execution.id,
-                            ExecutionStatus::Error,
-                            &updated_execution.output,
-                            updated_execution.duration_ms,
-                        ).await?;
                     }
+                    return Ok(());
+                } else {
+                    self.update_execution_output(0, &format!("Error: {}", e), ExecutionStatus::Error, 0).await?;
+                    Ok(())
                 }
             }
         }
-        
+        // Ok(()) <-- REMOVE THIS LINE
+    }
+
+    async fn update_execution_output(&mut self, index: usize, output: &str, status: ExecutionStatus, duration_ms: u128) -> Result<()> {
+        if let Some(exec) = self.command_history.get_mut(index) {
+            exec.output = output.to_string();
+            exec.status = status.clone();
+            exec.duration_ms = duration_ms as u64;
+            self.db.update_execution_status(
+                &exec.id,
+                status,
+                output,
+                duration_ms as u64,
+            ).await?;
+        }
         Ok(())
     }
     
     async fn load_command_history(&mut self) -> Result<()> {
-        debug!("Loading command history");
-        self.command_history = self.db.get_command_history(50).await?;
-        debug!("Loaded {} command history entries", self.command_history.len());
+        // Load command history from database
+        self.command_history = self.db.get_command_history(100).await?;
+        
+        // Update scroller with the total number of items
+        self.scroller.update_total_items(self.command_history.len());
+        
+        // Scroll to the bottom to show most recent commands
+        if !self.command_history.is_empty() {
+            self.scroller.scroll_to_item(self.command_history.len() - 1);
+        }
+        
         Ok(())
     }
     

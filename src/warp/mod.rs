@@ -1,17 +1,13 @@
-use anyhow::{anyhow, Result};
+use anyhow::Result;
 use colored::*;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::process::Stdio;
 use std::time::Duration;
-use tokio::io::{AsyncBufReadExt, BufReader};
-use tokio::process::Command;
-use tracing::{debug, info, warn};
 
-pub mod pipeline;
 pub mod agents;
-pub mod shell_runner;
 pub mod config;
+pub mod pipeline;
+pub mod shell_runner;
 
 use crate::config::Config;
 
@@ -50,7 +46,7 @@ impl Default for WarpConfig {
 
 impl WarpPipeline {
     /// Create a new Warp pipeline instance
-    pub fn new(config: &Config) -> Result<Self> {
+    pub fn new(_config: &Config) -> Result<Self> {
         let warp_config = WarpConfig::default(); // TODO: Load from .agentic.toml
         
         let client = Client::builder()

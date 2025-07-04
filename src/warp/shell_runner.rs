@@ -5,7 +5,7 @@ use std::process::Stdio;
 use std::time::{Duration, Instant};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use tracing::{debug, info, warn};
+use tracing::debug;
 
 /// Result of command execution
 #[derive(Debug, Clone, Serialize, Deserialize)]

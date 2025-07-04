@@ -5,7 +5,9 @@ use std::time::Duration;
 use tracing::{debug, info, warn};
 
 use crate::config::Config;
-use crate::ollama::{OllamaClient, OllamaConfig, ChatMessage as OllamaChatMessage};
+use crate::ollama::client::OllamaClient;
+use crate::ollama::OllamaConfig;
+use crate::ollama::client::ChatMessage as OllamaChatMessage;
 
 pub mod planner;
 
@@ -15,7 +17,7 @@ pub enum AIProvider {
     Ollama,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Agent {
     client: Client,
     config: crate::config::AgentConfig,

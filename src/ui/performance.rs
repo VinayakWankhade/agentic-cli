@@ -168,7 +168,8 @@ impl VirtualScroller {
         self.clamp_scroll_offset();
     }
 
-    fn max_scroll_offset(&self) -> usize {
+    /// Get the maximum scroll offset
+    pub fn max_scroll_offset(&self) -> usize {
         let visible_items = self.viewport_height / self.item_height;
         self.total_items.saturating_sub(visible_items)
     }
